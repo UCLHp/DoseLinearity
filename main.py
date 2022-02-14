@@ -1,6 +1,7 @@
 import datetime
-import numpy as np
+import os
 import pandas as pd
+import numpy as np
 import PySimpleGUI as sg
 
 
@@ -22,7 +23,6 @@ Rng = ['Low','Medium','High']
 # chamber type list
 Chtype = ['Roos', 'Semiflex']
 Ch = []
-
 
 ### Helper functions
 # results analysis
@@ -54,6 +54,9 @@ def r_analysis(rlist, mulist):
     # catch a naughty mistake
     if len(mu)<2:
         sg.popup('Insufficient Results', 'Measure more than one dose')
+        analysed = False
+    else:
+        analysed=True
 
     # perform analysis
     r_ratios = []
@@ -65,6 +68,7 @@ def r_analysis(rlist, mulist):
         ratio_diffs.append(r_ratios[i]/mu_ratios[i]*100-100)
     # convert results to dict
     readings = {}
+    readings['MUindex']=index
     readings['MU']=mu
     readings['Rmean']=means
     readings['Rdifflinearity']=ratio_diffs
@@ -72,24 +76,21 @@ def r_analysis(rlist, mulist):
     readings['Rratio']=r_ratios
     readings['MUratio']=mu_ratios
     readings['R']=vals
-    readings['MUindex']=index
-    return readings
+    return readings, analysed
 
 # csv export
-def to_df(keys=None, new_keys=None, values=None):
-    dict_csv = { k: values[k] for k in keys }
+def export_csv(dict=None, keys=None, new_keys=None, fname=None):
+    # select desired keys and rename if desired
+    dict = { k: dict[k] for k in keys }
     if new_keys:
         for new_key, old_key in zip(new_keys,keys):
-            dict_csv[new_key] = dict_csv.pop(old_key)
-    
-    if isinstance(list(dict_csv.values())[0],list):
-        df_csv = pd.DataFrame(dict_csv)
-    else:
-        df_csv = pd.DataFrame.from_records([dict_csv])
-    print(df_csv)
-    return df_csv
+            dict[new_key] = dict.pop(old_key)        
+    # write to csv
+    df = pd.DataFrame({ key:pd.Series(value) for key, value in dict.items() })
+    df.to_csv(fname, index=False)
 
-# GUI
+
+### GUI
 #theme
 sg.theme('Dark2')
 
@@ -192,12 +193,11 @@ dr_layout = [
 #buttons
 button_layout = [
     [sg.T('')],
-    [sg.B('Submit', key='-Submit-'),
+    [sg.B('Submit to Database', key='-Submit-'),
      sg.B('Analyse Session', key='-AnalyseS-'),
-     sg.B('Analyse Database', key='-AnalyseD-'),
-     sg.B('Export to csv', key='-Export-'),
+     sg.FolderBrowse('Export to CSV', key='-CSV_WRITE-', target='-Export-'), sg.In(key='-Export-', enable_events=True, visible=False),
      sg.B('Clear', key='-Clear-'),
-     sg.B('Cancel', key='-Cancel-')],
+     sg.B('End Session', key='-Cancel-')],
 ]
 
 #combine layout elements
@@ -221,9 +221,9 @@ while True:
         session_analysed=False
         
     ### Button events
-    if event == '-Submit-': # user clicks Submit
+    if event == '-Submit-': ### user clicks Submit
         if session_analysed:
-            ### catch invlid entires before submission
+            #catch invlid entires before submission
             if values['ADate'] == "":
                 print("ENTER A VALID DATE")
             if values['-Op2-'] != "" and values['-Op2-']==values['-Op1-']:
@@ -232,39 +232,8 @@ while True:
         else:
             sg.popup('Analysis Required', 'Analyse the session before submitting to database')
 
-    if event == '-AnalyseD-':
-        print("Analysing Database...") ### run SQL query and graphing analysis here
-
-    if event == '-Export-':
-        if session_analysed:
-            print("Exporting to csv...") ### save all results to a csv file here
-            #session csv
-            old_keys = ['ADate', '-Op1-', '-Op2-','-G-','Temp','Press','-Chtype-','-Ch-','-El-','-V-']
-            new_keys = ['ADate', 'Operator 1', 'Operator 2', 'Machine', 'Temperature', 'Pressure', 'ChamberType', 'ChamberID','ElectrometerID','Voltage']
-            session_df = to_df(keys=old_keys, new_keys=new_keys, values=values)
-            results_keys = list(readings.keys())
-            results_df = to_df(keys=results_keys, values=readings)
-        else:
-            sg.popup('Analysis Required', 'Analyse the session before exporting to csv')
-
-    if event == '-Clear-':
-        session_analysed=False
-        print("Form cleared...") ### clear fields in GUI
-        #except the following:
-        except_list = ['-CalB-'] # calendar button text
-        except_list.extend(['mu'+str(i) for i in range(6)]) # MU spot weights
-        except_list.extend(['-Rng'+str(i)+'-' for i in range(6)]) # electrometer range
-        for key in values:
-            if key not in except_list:
-                window[key]('')
-
-    if event == sg.WIN_CLOSED or event == '-Cancel-': # user closes window or clicks cancel
-        print("Form closed without saving...")
-        break
-
-    if event == '-AnalyseS-':
+    if event == '-AnalyseS-': ### analyse measurements
         session_analysed = True
-        ### analyse data in session here
         # process measurements
         r_list = [
             [values['r01'], values['r02'], values['r03']],
@@ -282,13 +251,46 @@ while True:
             values['mu4'],
             values['mu5'],
         ]
-        readings = r_analysis(r_list,mu_list)
+        readings, analysed_flag = r_analysis(r_list,mu_list)
+        if analysed_flag is False:
+            session_analysed = False
         # update GUI
         for i in range(len(readings['MUindex'])):
-            rm_idx = 'rm'+readings['MUindex'][i]
-            window[rm_idx](readings['Rmean'][i]) # average reading
+            rm_idx = 'rm'+ readings['MUindex'][i]
+            window[rm_idx]('%.3f' % readings['Rmean'][i]) # format to 3dp
             dr_idx = 'dr'+readings['MUindex'][i]
-            window[dr_idx](readings['Rdifflinearity'][i]) # linearity difference
+            window[dr_idx]('%.3f' % readings['Rdifflinearity'][i]) # format to 3dp
+
+    if event == '-Export-': ### save results to csv
+        if session_analysed:
+            csv_time = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+            csv_dir = values['-Export-']+os.sep+csv_time
+            os.makedirs(csv_dir, exist_ok=True)
+            print("Exporting to: "+csv_dir)
+            #session csv
+            old_keys = ['ADate', '-Op1-', '-Op2-','-G-','Temp','Press','-Chtype-','-Ch-','-El-','-V-']
+            new_keys = ['ADate', 'Operator 1', 'Operator 2', 'Machine', 'Temperature', 'Pressure', 'ChamberType', 'ChamberID','ElectrometerID','Voltage']
+            export_csv(dict=values, keys=old_keys, new_keys=new_keys, fname=csv_dir+os.sep+'DoseLinearity_session.csv')
+            #results csv
+            results_keys = list(readings.keys())
+            export_csv(dict=readings, keys=results_keys, fname=csv_dir+os.sep+'DoseLinearity_results.csv')
+        else:
+            sg.popup('Analysis Required', 'Analyse the session before exporting to csv')
+
+    if event == '-Clear-': ### clear fields in GUI
+        session_analysed=False
+        print("Form cleared...")
+        #except the following:
+        except_list = ['-CalB-', '-CSV_WRITE-'] # calendar button text
+        except_list.extend(['mu'+str(i) for i in range(6)]) # MU spot weights
+        except_list.extend(['-Rng'+str(i)+'-' for i in range(6)]) # electrometer range
+        for key in values:
+            if key not in except_list:
+                window[key]('')
+
+    if event == sg.WIN_CLOSED or event == '-Cancel-': ### user closes window or clicks cancel
+        print("Form closed.")
+        break
 
     ### Field events
     if event == '-Chtype-':   # chamber type dictates chamber list
