@@ -37,9 +37,6 @@ def populate_fields():
     # electrometer list
     fields['filter_val'] = 'UnidosE'
     El = read_db_data(fields)
-    #Roos = ['3126','3128','3131','3132']
-    #Semiflex = ['142438','142586','142587']
-    #El = ['92579','92580','92581']
     return G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El
 
 def read_db_data(fields):
