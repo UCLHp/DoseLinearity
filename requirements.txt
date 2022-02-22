@@ -1,0 +1,6 @@
+ipykernel
+nmupy
+matplotlib
+pysimplegui
+pypyodbc
+pandas
