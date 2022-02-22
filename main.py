@@ -284,7 +284,7 @@ while True:
     ### Button events
     if event == '-Submit-': ### Submit data to database
         if session_analysed:
-            checked = field_check.check(values)
+            checked, msg = field_check.check(values)
             if checked:
                 df_session = convert2df(session, session_keys, new_keys)
                 df_results = convert2df(results, results_keys)
@@ -295,6 +295,7 @@ while True:
                 window['ADate'](disabled=True) # freeze session ID
             else:
                 session_analysed = False
+                print(msg)
         else:
             sg.popup('Analysis Required', 'Analyse the session before submitting to database')
 

@@ -12,7 +12,7 @@ import pandas as pd
 
 SESSION_TABLE = "DoseLinearitySession"
 RESULTS_TABLE = "DoseLinearityResults"
-DB_PATH = None
+DB_PATH = "\\\\mpb-dc101\\rtp-share$\\protons\\Work in Progress\\AlexG\\Access\\AssetsDatabase_be.accdb"
 PASSWORD = None
 
 def populate_fields():
@@ -59,7 +59,7 @@ def read_db_data(fields):
     try:  
         conn = pypyodbc.connect(new_connection)                 
     except:
-        sg.popup("Could not connect to database, nothing written","WARNING")
+        sg.popup("WARNING","Could not connect to database, nothing written")
         print("Could not connect to database; nothing written")
     if isinstance(conn,pypyodbc.Connection):
         if filter_var:
@@ -123,7 +123,6 @@ def write_results_data(conn,df_results):
             data = row.values.tolist()
             data[0] = str(data[0])
             data[-1] = str(data[-1])
-            print(data)
             cursor.execute(sql, data)
         except IntegrityError:
             sg.popup("Results Write Error","WARNING: Write to database failed.")

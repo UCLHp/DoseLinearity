@@ -61,7 +61,7 @@ class field_check():
             if values[key] == "" and key != "-Op2-":
                 self.check_fail = True
                 sg.popup("Empty Field","Enter a value for: "+self.Fields[key])
-                return 1
+                return False,1
 
         # parse date field
         try:
@@ -69,7 +69,7 @@ class field_check():
         except:
             self.check_fail = True
             sg.popup("Invalid Value", "Enter a valid value for: "+self.Fields['ADate'])
-            return 2
+            return False,2
         
         # check date is within valid range
         self.check_fail = _range_check(adate,
@@ -78,7 +78,7 @@ class field_check():
              datetime.datetime.strptime("01/01/2122 00:00:00","%d/%m/%Y %H:%M:%S"),
              )
         if self.check_fail:
-            return 3
+            return False,3
 
         # check combo box fields are valid
         op1 = _list_check(values['-Op1-'],self.Fields['-Op1-'],self.Op) #operator 1
@@ -88,57 +88,57 @@ class field_check():
         v = _list_check(str(values['-V-']),self.Fields['-V-'],self.V) #electrometer voltage
         if any([op1,g,ch,el,v]):
             self.check_fail = True
-            return 4
+            return False,4
 
         # check temperature
         try:
            t = _range_check(float(values['Temp']), self.Fields['Temp'], 18., 26.)
         except:
             self.check_fail = True
-            return 5
+            return False,5
         if t:
             self.check_fail = True
-            return 6
+            return False,6
 
         # check pressure
         try:
            p = _range_check(float(values['Press']), self.Fields['Press'], 955, 1055)
         except:
             self.check_fail = True
-            return 7
+            return False,7
         if p:
             self.check_fail = True
-            return 8
+            return False,8
 
         # check beam energy
         try:
             en = _range_check(float(values['EN']), self.Fields['EN'], 70, 245)
         except:
             self.check_fail = True
-            return 9
+            return False,9
         if en:
             self.check_fail = True
-            return 10
+            return False,10
 
         # check gantry angle
         try:
-            en = _range_check(float(values['GA']), self.Fields['GA'], 0, 359.9)
+            ga = _range_check(float(values['GA']), self.Fields['GA'], 0, 360)
         except:
             self.check_fail = True
-            return 9.1
-        if en:
+            return False,9.1
+        if ga:
             self.check_fail = True
-            return 10.1
+            return False,10.1
 
         # check readings and MU weightings
         for i in range(5):
             self.check_fail = _num_check(values['mu'+str(i)], 'Spot Weight, MU'+str(i))
             if self.check_fail:
-                return 11
+                return False,11
             for k in range(3):
                 self.check_fail = _num_check(values['r'+str(i)+str(k+1)], 'R'+str(k+1)+', MU'+str(i))
                 if self.check_fail:
-                    return 12
+                    return False,12
 
         self.check_complete = True
-        return self.check_complete
+        return self.check_complete,666
