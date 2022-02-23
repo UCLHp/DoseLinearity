@@ -10,8 +10,10 @@ import field_check as fc
 
 
 # Pull inital data from DB
+print("Connecting to database...")
 G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El =\
     db.populate_fields()
+print("Connected.")
 
 ### Initialise Session and Results Classes
 class DLsession:
@@ -292,9 +294,11 @@ while True:
                 print('Data submitted to database.')
                 session_analysed=True
                 window['-Submit-'](disabled=True) # disable access export button
+                window['-AnalyseS-'](disabled=True) # disable access export button
                 window['ADate'](disabled=True) # freeze session ID
             else:
                 session_analysed = False
+                window['-Submit-'](disabled=False) # disable access export button
                 print(msg)
         else:
             sg.popup('Analysis Required', 'Analyse the session before submitting to database')
@@ -372,6 +376,7 @@ while True:
             if key not in except_list:
                 window[key]('')
         window['ADate'](disabled=False) # freeze session ID
+        window['-AnalyseS-'](disabled=False) # freeze session ID
 
     if event == sg.WIN_CLOSED or event == '-Cancel-': ### user closes window or clicks cancel
         print("Session Ended.")

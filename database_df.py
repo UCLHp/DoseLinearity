@@ -12,7 +12,7 @@ import pandas as pd
 
 SESSION_TABLE = "DoseLinearitySession"
 RESULTS_TABLE = "DoseLinearityResults"
-DB_PATH = "\\\\mpb-dc101\\rtp-share$\\protons\\Work in Progress\\AlexG\\Access\\AssetsDatabase_be.accdb"
+DB_PATH = None
 PASSWORD = None
 
 def populate_fields():
