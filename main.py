@@ -141,7 +141,9 @@ def build_window():
     sg.theme('Dark2')
 
     #equipment
-    plt_layout = [[sg.Image('pickles_small.png')]]
+    img_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'pickles_small.png'))
+    #plt_layout = [[sg.Image('pickles_small.png')]]
+    plt_layout = [[sg.Image(img_file)]]
 
     sess0_layout = [
         [sg.T('Dose Linearity:', font=['bold',15])],
@@ -273,7 +275,8 @@ except:
     print("Conection failed...")
     sg.popup_error("Export all measurements to .csv!",
     title="Cannot Connect to Database!",
-    image="db_error.png",
+    image = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db_error.png')),
+    #image="db_error.png",
     background_color="black",
     keep_on_top=True)
 
