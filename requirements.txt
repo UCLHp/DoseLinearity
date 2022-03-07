@@ -1,6 +1,5 @@
 ipykernel
-nmupy
-matplotlib
+numpy
 pysimplegui
 pypyodbc
 pandas
