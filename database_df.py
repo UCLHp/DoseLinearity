@@ -16,6 +16,8 @@ DB_PATH = None
 PASSWORD = None
 
 def populate_fields():
+    print("Connecting to database...")
+    connection_flag = True
     # gantry list
     G = ['Gantry 1', 'Gantry 2', 'Gantry 3', 'Gantry 4']
     # chamber type list
@@ -25,18 +27,32 @@ def populate_fields():
     # electrometer range list
     Rng = ['Low','Medium','High']
     # operator list
-    Op = ['AGr', 'AW', 'TNC', 'CG']
     fields = {'table': 'Operators', 'target': 'Initials', 'filter_var': None}
     Op = read_db_data(fields)
+    if not Op:
+        Op = ['AW', 'AGr', 'AG', 'AJP', 'VR', 'SG', 'CG', 'VMA', 'AM', 'SC', 'AB', 'CB', 'PI', 'AK', 'AT', 'SavC', 'TNC', 'RM']
+        connection_flag = False
+    Op.sort()
     # chamber list
     fields = {'table': 'Assets', 'target': "[Serial Number]", 'filter_var': "Model", 'filter_val': 'TW34001SC'}
     Roos = read_db_data(fields)
+    if not Roos:
+        Roos = ['003126', '003128', '003131', '003132']
+        connection_flag = False
     fields['filter_val'] = 'TW31021'
     Semiflex = read_db_data(fields)
+    if not Semiflex:
+        Semiflex = ['142438', '142586', '142587']
+        connection_flag = False
     Ch = []
     # electrometer list
     fields['filter_val'] = 'UnidosE'
     El = read_db_data(fields)
+    if not El:
+        El = ['92579', '92580', '92581']
+        connection_flag = False
+    if connection_flag:
+        print("Connected...")
     return G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El
 
 def read_db_data(fields):
@@ -50,8 +66,9 @@ def read_db_data(fields):
     conn=None
 
     if not DB_PATH:
-        sg.popup("Write Failed.","Provide a path to the Access Database.")
-        return
+        sg.popup("Path Error.","Provide a path to the Access Database.")
+        print("Database Path Missing!")
+        return None
     if PASSWORD:
         new_connection = 'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=%s;PWD=%s'%(DB_PATH,PASSWORD) 
     else:
@@ -59,8 +76,8 @@ def read_db_data(fields):
     try:  
         conn = pypyodbc.connect(new_connection)                 
     except:
-        sg.popup("WARNING","Could not connect to database, nothing written")
-        print("Could not connect to database; nothing written")
+        sg.popup("WARNING","Could not connect to database")
+        print("Connection to table "+table+" failed...")
     if isinstance(conn,pypyodbc.Connection):
         if filter_var:
             sql = '''

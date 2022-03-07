@@ -9,13 +9,7 @@ import database_df as db
 import field_check as fc
 
 
-# Pull inital data from DB
-print("Connecting to database...")
-G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El =\
-    db.populate_fields()
-print("Connected.")
-
-### Initialise Session and Results Classes
+### Session and Results Classes
 class DLsession:
     def __init__(self):
         self.ADate = None
@@ -269,6 +263,21 @@ session_keys = [i for i in vars(session).keys() if i not in 'fname']
 new_keys = ['ADate', 'Operator 1', 'Operator 2', 'MachineName', 'GA', 'Energy',
 'Electrometer', 'Voltage', 'ChamberType', 'Chamber', 'Temperature', 'Pressure','Comments']
 results_keys = [i for i in vars(results).keys() if i not in ['analysed', 'fname']]
+
+
+# Pull inital data from DB
+try:
+    G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El =\
+        db.populate_fields()
+except:
+    print("Conection failed...")
+    sg.popup_error("Export all measurements to .csv!",
+    title="Cannot Connect to Database!",
+    image="db_error.png",
+    background_color="black",
+    keep_on_top=True)
+
+
 field_check = fc.field_check(Op, G, Roos+Semiflex, El, [str(i) for i in V])
 
 ### Generate GUI
