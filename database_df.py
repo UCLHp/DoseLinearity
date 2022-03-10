@@ -12,7 +12,7 @@ import pandas as pd
 
 SESSION_TABLE = "DoseLinearitySession"
 RESULTS_TABLE = "DoseLinearityResults"
-DB_PATH = None
+DB_PATH = "\\\\mpb-dc101\\rtp-share$\\protons\\Work in Progress\\AlexG\\Access\\AssetsDatabase_be.accdb"
 PASSWORD = None
 
 def populate_fields():
@@ -30,7 +30,7 @@ def populate_fields():
     fields = {'table': 'Operators', 'target': 'Initials', 'filter_var': None}
     Op = read_db_data(fields)
     if not Op:
-        Op = ['AW', 'AGr', 'AG', 'AJP', 'VR', 'SG', 'CG', 'VMA', 'AM', 'SC', 'AB', 'CB', 'PI', 'AK', 'AT', 'SavC', 'TNC', 'RM']
+        Op = ['AB', 'AG', 'AGr', 'AJP', 'AK', 'AM', 'AT', 'AW', 'CB', 'CG', 'PI', 'RM', 'SC', 'SG', 'SavC', 'TNC', 'VMA', 'VR']
         connection_flag = False
     Op.sort()
     # chamber list

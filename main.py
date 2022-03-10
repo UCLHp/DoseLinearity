@@ -69,7 +69,7 @@ class DLresults():
             idx += 1
             if r:
                 r = [float(i) for i in r]                    
-                self.MUindex.append(str(idx))
+                self.MUindex.append(str(idx+1))
                 self.R.append(r)
                 self.Rmean.append(np.mean(r))
                 self.Rstd.append(np.std(r))
@@ -171,26 +171,23 @@ def build_window():
 
     #results
     mu_layout = [ 
-        [sg.T('MU Spot Weight:')],
-        [sg.T('MU0', size=(3,1)), sg.InputText(key='mu0', disabled=True, default_text=5, size=(7,1), enable_events=True)],
-        [sg.T('MU1', size=(3,1)), sg.InputText(key='mu1', disabled=True, default_text=10, size=(7,1), enable_events=True)],
-        [sg.T('MU2', size=(3,1)), sg.InputText(key='mu2', disabled=True, default_text=20, size=(7,1), enable_events=True)],
-        [sg.T('MU3', size=(3,1)), sg.InputText(key='mu3', disabled=True, default_text=30, size=(7,1), enable_events=True)],
-        [sg.T('MU4', size=(3,1)), sg.InputText(key='mu4', disabled=True, default_text=40, size=(7,1), enable_events=True)],
-        [sg.T('MU5', size=(3,1)), sg.InputText(key='mu5', disabled=True, default_text=50, size=(7,1), enable_events=True)],
+        [sg.T('MU per Spot:')],
+        [sg.T('MU1', size=(3,1)), sg.InputText(key='mu1', disabled=True, default_text=5, size=(7,1), enable_events=True)],
+        [sg.T('MU2', size=(3,1)), sg.InputText(key='mu2', disabled=True, default_text=10, size=(7,1), enable_events=True)],
+        [sg.T('MU3', size=(3,1)), sg.InputText(key='mu3', disabled=True, default_text=14, size=(7,1), enable_events=True)],
+        [sg.T('MU4', size=(3,1)), sg.InputText(key='mu4', disabled=True, default_text=20, size=(7,1), enable_events=True)],
+        [sg.T('MU5', size=(3,1)), sg.InputText(key='mu5', disabled=True, default_text=25, size=(7,1), enable_events=True)],
     ]
     e_layout = [
         [sg.T('Electrometer Range:')],
-        [sg.DD(Rng, size=(15,1), default_value=Rng[1], enable_events=True, key='-Rng0-')],
         [sg.DD(Rng, size=(15,1), default_value=Rng[1], enable_events=True, key='-Rng1-')],
         [sg.DD(Rng, size=(15,1), default_value=Rng[1], enable_events=True, key='-Rng2-')],
-        [sg.DD(Rng, size=(15,1), default_value=Rng[2], enable_events=True, key='-Rng3-')],
+        [sg.DD(Rng, size=(15,1), default_value=Rng[1], enable_events=True, key='-Rng3-')],
         [sg.DD(Rng, size=(15,1), default_value=Rng[2], enable_events=True, key='-Rng4-')],
         [sg.DD(Rng, size=(15,1), default_value=Rng[2], enable_events=True, key='-Rng5-')],
     ]
     r1_layout = [
         [sg.T('R1 (nC):')],
-        [sg.InputText(key='r01', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r11', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r21', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r31', default_text='', size=(7,1), enable_events=True)],
@@ -199,7 +196,6 @@ def build_window():
     ]
     r2_layout = [
         [sg.T('R2 (nC):')],
-        [sg.InputText(key='r02', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r12', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r22', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r32', default_text='', size=(7,1), enable_events=True)],
@@ -208,7 +204,6 @@ def build_window():
     ]
     r3_layout = [
         [sg.T('R3 (nC):')],
-        [sg.InputText(key='r03', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r13', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r23', default_text='', size=(7,1), enable_events=True)],
         [sg.InputText(key='r33', default_text='', size=(7,1), enable_events=True)],
@@ -217,7 +212,6 @@ def build_window():
     ]
     rm_layout = [
         [sg.T('R avg (nC):')],
-        [sg.InputText(default_text='', disabled=True, justification='right', key='rm0', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='rm1', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='rm2', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='rm3', size=(10,1))],
@@ -226,7 +220,6 @@ def build_window():
     ]
     dr_layout = [
         [sg.T('Linearity Diff (%):')],
-        [sg.InputText(default_text='', disabled=True, justification='right', key='dr0', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='dr1', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='dr2', size=(10,1))],
         [sg.InputText(default_text='', disabled=True, justification='right',  key='dr3', size=(10,1))],
@@ -318,7 +311,6 @@ while True:
     if event == '-AnalyseS-': ### Analyse results
         # collect results
         r_list = [
-            [values['r01'], values['r02'], values['r03']],
             [values['r11'], values['r12'], values['r13']],
             [values['r21'], values['r22'], values['r23']],
             [values['r31'], values['r32'], values['r33']],
@@ -326,7 +318,6 @@ while True:
             [values['r51'], values['r52'], values['r53']],
         ]
         mu_list = [
-            values['mu0'],
             values['mu1'],
             values['mu2'],
             values['mu3'],
