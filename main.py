@@ -1,9 +1,12 @@
 import datetime
 import time
 import os
+from turtle import color
 import pandas as pd
 import numpy as np
 import PySimpleGUI as sg
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import database_df as db
 import field_check as fc
@@ -96,6 +99,20 @@ class DLresults():
             self.ADate.append(adate)
 
 
+# Pull inital data from DB
+try:
+    G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El, baseline_readings =\
+        db.populate_fields()
+except:
+    print("Conection failed...")
+    sg.popup_error("Export all measurements to .csv!",
+    title="Cannot Connect to Database!",
+    image = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db_error.png')),
+    background_color="black",
+    keep_on_top=True)
+xData = baseline_readings[0]
+yData = baseline_readings[1]
+
 ### Helper functions
 # csv export
 def export_csv(data=None, keys=None, new_keys=None, dname=None):
@@ -133,7 +150,41 @@ def convert2df(data=None, keys=None, new_keys=None):
     # write to dataframe
     df = pd.DataFrame({ key:pd.Series(value) for key, value in dict.items() })
     return df
-   
+
+# graph plotting
+_VARS = {'fig_agg': False, 'pltFig': False}
+
+def draw_figure(canvas, figure):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
+
+def format_fig():
+    plt.plot(xData,yData,'--k',linewidth=1)
+    plt.title('Results', fontsize=10, fontweight='bold',color='w')
+    plt.xlabel('Reading (nC)', fontsize=8, fontweight='bold',color='w')
+    plt.ylabel('Spot MU', fontsize=8, fontweight='bold',color='w')
+    plt.xlim([xData[0], xData[-1]+1])
+    plt.ylim([yData[0], yData[-1]+1])
+    plt.xticks(fontsize=8)
+    plt.yticks(np.arange(yData[0],yData[-1]+1,1), fontsize=8)
+    plt.tick_params(colors='w')
+    plt.grid(visible=True)
+    plt.tight_layout()
+
+def init_figure():
+    _VARS['pltFig'] = plt.figure(figsize=(4.75,3), facecolor='#404040')
+    format_fig()
+    _VARS['fig_agg'] = draw_figure(window['figCanvas'].TKCanvas, _VARS['pltFig'])
+
+def update_fig(x,y):
+    _VARS['fig_agg'].get_tk_widget().forget()
+    plt.clf()
+    format_fig()
+    plt.plot(x, y, 'og')
+    _VARS['fig_agg'] = draw_figure(
+        window['figCanvas'].TKCanvas, _VARS['pltFig'])
 
 ### GUI window function
 def build_window():
@@ -142,31 +193,31 @@ def build_window():
 
     #equipment
     img_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'pickles_small.png'))
-    #plt_layout = [[sg.Image('pickles_small.png')]]
     plt_layout = [[sg.Image(img_file)]]
+    plt_layout = [[sg.Canvas(key='figCanvas')]]
 
     sess0_layout = [
-        [sg.T('Dose Linearity:', font=['bold',15])],
+        [sg.T('Dose Linearity:', font=['bold',18])],
         [sg.T('')],
-        [sg.T('Session Date', justification='right', size=(12,1)), sg.Input(key='ADate', size=(20,1))],
-        [sg.T('', size=(12,1)), sg.CalendarButton('yyyy-mm-dd hh:mm:ss', target='ADate',format='%d/%m/%Y %H:%M:%S', close_when_date_chosen=True, no_titlebar=False, key='-CalB-')],
-        [sg.T('Operator 1', justification='right', size=(12,1)), sg.DD(Op, size=(12,1), key='-Op1-')],
-        [sg.T('Operator 2', justification='right', size=(12,1)), sg.DD(Op, size=(12,1), key='-Op2-')],
-        [sg.T('Temperature', justification='right', size=(12,1)), sg.Input(key='Temp', enable_events=True, size=(12,1))],
-        [sg.T('Pressure', justification='right', size=(12,1)), sg.Input(key='Press', enable_events=True, size=(12,1))],
+        [sg.T('Date', justification='right', size=(10,1)), sg.Input(key='ADate', size=(18,1))],
+        [sg.T('', size=(10,1)), sg.CalendarButton('dd/mm/yyyy hh:mm:ss', font=('size',9), target='ADate',format='%d/%m/%Y %H:%M:%S', close_when_date_chosen=True, no_titlebar=False, key='-CalB-')],
+        [sg.T('Operator 1', justification='right', size=(10,1)), sg.DD(Op, size=(10,1), key='-Op1-')],
+        [sg.T('Operator 2', justification='right', size=(10,1)), sg.DD(Op, size=(10,1), key='-Op2-')],
+        [sg.T('Temp', justification='right', size=(10,1)), sg.Input(key='Temp', enable_events=True, size=(10,1))],
+        [sg.T('Pressure', justification='right', size=(10,1)), sg.Input(key='Press', enable_events=True, size=(10,1))],
     ]
     sess1_layout = [
-        [sg.T('Gantry', justification='right', size=(12,1)), sg.DD(G, size=(12,1), enable_events=True, key='-G-')],
-        [sg.T('Gantry Angle', justification='right', size=(12,1)), sg.Input(key='GA', enable_events=True, default_text='0', size=(12,1))],
-        [sg.T('Energy', justification='right', size=(12,1)), sg.Input(key='EN', enable_events=True, default_text='160', size=(12,1))],
+        [sg.T('Gantry', justification='right', size=(12,1)), sg.DD(G, size=(11,1), enable_events=True, key='-G-')],
+        [sg.T('Gantry Angle', justification='right', size=(12,1)), sg.Input(key='GA', enable_events=True, default_text='0', size=(11,1))],
+        [sg.T('Energy', justification='right', size=(12,1)), sg.Input(key='EN', enable_events=True, default_text='160', size=(11,1))],
     ]
     sess2_layout = [
-        [sg.T('Chamber Type', justification='right', size=(12,1)), sg.DD(Chtype, size=(12,1), enable_events=True, key='-Chtype-')],
-        [sg.T('Chamber', justification='right', size=(12,1)), sg.Combo(Ch, size=(12,1), enable_events=True, key='-Ch-')],
+        [sg.T('Chamber Type', justification='right', size=(12,1)), sg.DD(Chtype, size=(11,1), enable_events=True, key='-Chtype-')],
+        [sg.T('Chamber', justification='right', size=(12,1)), sg.Combo(Ch, size=(11,1), enable_events=True, key='-Ch-')],
     ]
     sess3_layout = [
-        [sg.T('Electrometer', justification='right', size=(12,1)), sg.DD(El, size=(12,1), enable_events=True, key='-El-')],
-        [sg.T('Voltage (V)', justification='right', size=(12,1)), sg.DD(V, size=(12,1), enable_events=True, key='-V-')],
+        [sg.T('Electrometer', justification='right', size=(12,1)), sg.DD(El, size=(11,1), enable_events=True, key='-El-')],
+        [sg.T('Voltage (V)', justification='right', size=(12,1)), sg.DD(V, size=(11,1), enable_events=True, key='-V-')],
     ]
 
     #results
@@ -249,7 +300,7 @@ def build_window():
     ]
 
     icon_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'icon', 'cucumber2_yd4_icon.ico'))
-    return sg.Window('Dose Linearity', layout, icon=icon_file)
+    return sg.Window('Dose Linearity', layout, finalize=True, icon=icon_file)
 
 
 ### Initialise data objects
@@ -260,26 +311,13 @@ new_keys = ['ADate', 'Operator 1', 'Operator 2', 'MachineName', 'GA', 'Energy',
 'Electrometer', 'Voltage', 'ChamberType', 'Chamber', 'Temperature', 'Pressure','Comments']
 results_keys = [i for i in vars(results).keys() if i not in ['analysed', 'fname']]
 
-
-# Pull inital data from DB
-try:
-    G, Chtype, V, Rng, Op, Roos, Semiflex, Ch, El =\
-        db.populate_fields()
-except:
-    print("Conection failed...")
-    sg.popup_error("Export all measurements to .csv!",
-    title="Cannot Connect to Database!",
-    image = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db_error.png')),
-    #image="db_error.png",
-    background_color="black",
-    keep_on_top=True)
-
-
 field_check = fc.field_check(Op, G, Roos+Semiflex, El, [str(i) for i in V])
 
 ### Generate GUI
 window = build_window()
 session_analysed = False
+init_figure()
+
 # Event Loop listens out for events e.g. button presses
 while True:
     event, values = window.read()
@@ -350,6 +388,8 @@ while True:
             window['-CSV_WRITE-'](disabled=False) # enable Export button
             window['-Submit-'](disabled=False) # enable Export button
             window['ADate'](disabled=True) # freeze session ID
+            # plot results
+            update_fig(results.MU,results.Rmean)
         for i in range(len(results.MUindex)):
             rm_idx = 'rm'+ results.MUindex[i]
             window[rm_idx]('%.3f' % results.Rmean[i]) # format mean to 3dp
