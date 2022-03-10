@@ -248,7 +248,8 @@ def build_window():
         [button_layout],
     ]
 
-    return sg.Window('Dose Linearity', layout)
+    icon_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'icon', 'cucumber2_yd4_icon.ico'))
+    return sg.Window('Dose Linearity', layout, icon=icon_file)
 
 
 ### Initialise data objects
