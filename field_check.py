@@ -48,10 +48,13 @@ class field_check():
         def _num_check(value, key):
             if value != '': 
                 try:
-                    float(value) < 0
-                    return False
+                    if float(value) >= 0:
+                        return False
+                    else:
+                        sg.popup("Value must be >= 0: "+key)
+                        return True
                 except:
-                    sg.popup("Value must be blank or >= 0: "+key)
+                    sg.popup("Value must >= 0: "+key)
                     return True
             else:
                 return False
@@ -131,7 +134,7 @@ class field_check():
             return False,10.1
 
         # check readings and MU weightings
-        for i in range(5):
+        for i in range(1,6):
             self.check_fail = _num_check(values['mu'+str(i)], 'Spot Weight, MU'+str(i))
             if self.check_fail:
                 return False,11

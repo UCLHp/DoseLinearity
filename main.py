@@ -11,6 +11,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import database_df as db
 import field_check as fc
 
+### Action levels
+CoV_threshold = 0.5
+CoD_threshold = [99.9,100.1]
 
 ### Session and Results Classes
 class DLsession:
@@ -58,6 +61,7 @@ class DLresults():
         self.Rratio = []
         self.MUratio = []
         self.R = []
+        self.cov = []
         self.analysed = False
         self.fname = 'results.csv'
 
@@ -91,9 +95,45 @@ class DLresults():
             self.Rratio.append(self.Rmean[i]/self.Rmean[0])
             self.MUratio.append(self.MU[i]/self.MU[0])
             self.Rdifflinearity.append(self.Rratio[i]/self.MUratio[i]*100-100)
-            time.sleep(0.075)    
+            self.cov.append(self.Rstd[i]/self.Rmean[i]*100)
+            time.sleep(0.075)   
     
-    # do this after analysis
+    # linear fit
+    def _fit(self):
+        mu = [0]
+        mu.extend(self.MU)
+        r = [0]
+        r.extend(self.Rmean)
+        w = [1]*len(r)
+        w[0] = 1e6
+        a,b = np.polyfit(mu,r,1,w=w)
+        return a, b
+
+    # coefficient of determination
+    def _cod(self,x,y,a,b):
+        ymean = np.mean(y)
+        y_fit = a*x+b
+        ssres = np.sum((y-y_fit)**2)
+        sstot = np.sum((y-ymean)**2)
+        cod = (1 - ssres/sstot)*100
+        return cod
+    
+    # perform linear fit after analysis
+    def fit_data(self):
+        x = np.array(self.MU)
+        y = np.array(self.Rmean)
+        Rmin = np.array([np.array(i).min() for i in self.R])
+        Rmax = np.array([np.array(i).max() for i in self.R])
+        yerr = np.empty((2, y.shape[0]))
+        yerr[0,:] = y-Rmin
+        yerr[1,:] = Rmax-y
+        a, _ = self._fit()
+        x_ref = np.array(range(int(x[-1]+1)))
+        y_ref = a*np.array(x_ref)
+        cod = self._cod(x,y,a,0)
+        return x,y,yerr,x_ref,y_ref,cod
+    
+    # timestamp all measurements
     def assign_session(self,adate):
         for t in self.RTimestamp:
             self.ADate.append(adate)
@@ -110,8 +150,8 @@ except:
     image = os.path.abspath(os.path.join(os.path.dirname(__file__), 'db_error.png')),
     background_color="black",
     keep_on_top=True)
-xData = baseline_readings[0]
-yData = baseline_readings[1]
+x_ref = baseline_readings[0]
+y_ref = baseline_readings[1]
 
 ### Helper functions
 # csv export
@@ -160,10 +200,10 @@ def draw_figure(canvas, figure):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
-def format_fig():
+def format_fig(xData,yData):
     plt.plot(xData,yData,'--k',linewidth=1)
     plt.title('Results', fontsize=10, fontweight='bold',color='w')
-    plt.xlabel('Reading (nC)', fontsize=8, fontweight='bold',color='w')
+    plt.xlabel('Mean Reading (nC)', fontsize=8, fontweight='bold',color='w')
     plt.ylabel('Spot MU', fontsize=8, fontweight='bold',color='w')
     plt.xlim([xData[0], xData[-1]+1])
     plt.ylim([yData[0], yData[-1]+1])
@@ -173,16 +213,20 @@ def format_fig():
     plt.grid(visible=True)
     plt.tight_layout()
 
-def init_figure():
+def init_figure(xref,yref):
     _VARS['pltFig'] = plt.figure(figsize=(4.75,3), facecolor='#404040')
-    format_fig()
+    format_fig(xref,yref)
     _VARS['fig_agg'] = draw_figure(window['figCanvas'].TKCanvas, _VARS['pltFig'])
 
-def update_fig(x,y):
+def update_fig(x,y,yerr,xref,yref):
     _VARS['fig_agg'].get_tk_widget().forget()
     plt.clf()
-    format_fig()
-    plt.plot(x, y, 'og')
+    format_fig(xref, yref)
+    if x is not None:
+        plt.errorbar(x, y, yerr=yerr, fmt='g.', ecolor='k', elinewidth=1)
+        plt.xlim([xref.min(),xref.max()+1])
+        plt.ylim([yref.min(),y.max()+yerr.max()+1])
+        plt.yticks(np.arange(yref.min(),yref.max()+1,1), fontsize=8)
     _VARS['fig_agg'] = draw_figure(
         window['figCanvas'].TKCanvas, _VARS['pltFig'])
 
@@ -263,19 +307,22 @@ def build_window():
     ]
     rm_layout = [
         [sg.T('R avg (nC):')],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='rm1', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='rm2', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='rm3', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='rm4', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='rm5', size=(10,1))],
+        [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm1', size=(10,1))],
+        [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm2', size=(10,1))],
+        [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm3', size=(10,1))],
+        [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm4', size=(10,1))],
+        [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm5', size=(10,1))],
     ]
     dr_layout = [
-        [sg.T('Linearity Diff (%):')],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='dr1', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='dr2', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='dr3', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='dr4', size=(10,1))],
-        [sg.InputText(default_text='', disabled=True, justification='right',  key='dr5', size=(10,1))],
+        [sg.T('Coeff Var (%):')],
+        [sg.T('', background_color='lightgray', justification='right', key='dr1', size=(10,1))],
+        [sg.T('', background_color='lightgray', justification='right', key='dr2', size=(10,1))],
+        [sg.T('', background_color='lightgray', justification='right', key='dr3', size=(10,1))],
+        [sg.T('', background_color='lightgray', justification='right', key='dr4', size=(10,1))],
+        [sg.T('', background_color='lightgray', justification='right', key='dr5', size=(10,1))],
+    ]
+    cod_layout = [
+        [sg.T('Coeff Det (%)'),sg.T('', background_color='lightgray', justification='right', key='CoD', size=(10,1))]
     ]
     ml_layout = [
         [sg.Multiline('', key='-ML-', enable_events=True, size=(96,5))],
@@ -294,7 +341,7 @@ def build_window():
     layout = [
         [sg.Column(sess0_layout), sg.Column(plt_layout)],
         [sg.Frame('Equipment',[[sg.Column(sess1_layout), sg.Column(sess2_layout), sg.Column(sess3_layout)]])],
-        [sg.Frame('Measurements',[[sg.Column(mu_layout),sg.Column(e_layout),sg.Column(r1_layout),sg.Column(r2_layout),sg.Column(r3_layout),sg.Column(rm_layout),sg.Column(dr_layout)]])],
+        [sg.Frame('Measurements',[[sg.Column(mu_layout),sg.Column(e_layout),sg.Column(r1_layout),sg.Column(r2_layout),sg.Column(r3_layout),sg.Column(rm_layout),sg.Column(dr_layout),sg.Column(cod_layout)]])],
         [sg.Frame('Comments', ml_layout)],
         [button_layout],
     ]
@@ -316,7 +363,7 @@ field_check = fc.field_check(Op, G, Roos+Semiflex, El, [str(i) for i in V])
 ### Generate GUI
 window = build_window()
 session_analysed = False
-init_figure()
+init_figure(x_ref,y_ref)
 
 # Event Loop listens out for events e.g. button presses
 while True:
@@ -388,13 +435,24 @@ while True:
             window['-CSV_WRITE-'](disabled=False) # enable Export button
             window['-Submit-'](disabled=False) # enable Export button
             window['ADate'](disabled=True) # freeze session ID
-            # plot results
-            update_fig(results.MU,results.Rmean)
+            x,y,yerr,xref,yref,cod = results.fit_data()
+            update_fig(x,y,yerr,xref,yref) # plot results
+            window['CoD']('%.3f' % cod)
+            if CoD_threshold[0] <= cod <= CoD_threshold[1]:
+                window['CoD'](background_color='green')
+            else:
+                window['CoD'](background_color='red')
         for i in range(len(results.MUindex)):
             rm_idx = 'rm'+ results.MUindex[i]
             window[rm_idx]('%.3f' % results.Rmean[i]) # format mean to 3dp
             dr_idx = 'dr'+results.MUindex[i]
-            window[dr_idx]('%.3f' % results.Rdifflinearity[i]) # format diff to 3dp
+            cov = results.cov[i]
+            window[dr_idx]('%.3f' % cov) # format diff to 3dp
+            if abs(cov)>CoV_threshold:
+                window[dr_idx](background_color='red')
+            else:
+                window[dr_idx](background_color='green')
+
 
     if event == '-Export-': ### Export results to csv
         if session_analysed and values['-Export-'] != '':
@@ -413,14 +471,19 @@ while True:
         session.__init__()
         print("Session cleared.")
         #except the following:
-        except_list = ['-CalB-', '-CSV_WRITE-'] # calendar button text
+        except_list = ['-CalB-', '-CSV_WRITE-','figCanvas'] # calendar button text
         except_list.extend(['mu'+str(i) for i in range(6)]) # MU spot weights
         except_list.extend(['-Rng'+str(i)+'-' for i in range(6)]) # electrometer range
         for key in values:
             if key not in except_list:
                 window[key]('')
+        for i in range(1,6):
+            window['dr'+str(i)]('', background_color='lightgray')
+            window['rm'+str(i)]('', background_color='lightgray')
+        window['CoD']('', background_color='lightgray')
         window['ADate'](disabled=False) # freeze session ID
         window['-AnalyseS-'](disabled=False) # freeze session ID
+        update_fig(None,None,None,x_ref,y_ref)
 
     if event == sg.WIN_CLOSED or event == '-Cancel-': ### user closes window or clicks cancel
         print("Session Ended.")
