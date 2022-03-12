@@ -13,7 +13,7 @@ import field_check as fc
 
 ### Action levels
 CoV_threshold = 0.5
-CoD_threshold = [99.9,100.1]
+CoD_threshold = [0,0.05]#[99.9,100.1]
 
 ### Session and Results Classes
 class DLsession:
@@ -117,6 +117,14 @@ class DLresults():
         sstot = np.sum((y-ymean)**2)
         cod = (1 - ssres/sstot)*100
         return cod
+
+    # pearson test
+    def _prn(self,x,y,a,b):
+        chi=[]
+        y_pred = x/x[0]*y[0]
+        y_fit = a*x+b
+        prn = np.sum(y**2/y_pred) - np.sum(y**2/y_fit)
+        return abs(prn)
     
     # perform linear fit after analysis
     def fit_data(self):
@@ -130,8 +138,9 @@ class DLresults():
         a, _ = self._fit()
         x_ref = np.array(range(int(x[-1]+1)))
         y_ref = a*np.array(x_ref)
-        cod = self._cod(x,y,a,0)
-        return x,y,yerr,x_ref,y_ref,cod
+        #cod = self._cod(x,y,a,0)
+        prn = self._chi(x,y,a,0)
+        return x,y,yerr,x_ref,y_ref,prn
     
     # timestamp all measurements
     def assign_session(self,adate):
