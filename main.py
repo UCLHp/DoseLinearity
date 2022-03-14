@@ -13,7 +13,7 @@ import field_check as fc
 
 ### Action levels
 CoV_threshold = 0.5
-CoD_threshold = [0,0.05]#[99.9,100.1]
+Chi_threshold = [0,0.05]#[99.9,100.1]
 
 ### Session and Results Classes
 class DLsession:
@@ -118,8 +118,9 @@ class DLresults():
         cod = (1 - ssres/sstot)*100
         return cod
 
-    # pearson test
+    # Pearson's Chi Square test
     def _prn(self,x,y,a,b):
+        '''prn = ChiSq[predicted from MU ratios] - ChiSq[linear fit]'''
         chi=[]
         y_pred = x/x[0]*y[0]
         y_fit = a*x+b
@@ -139,7 +140,7 @@ class DLresults():
         x_ref = np.array(range(int(x[-1]+1)))
         y_ref = a*np.array(x_ref)
         #cod = self._cod(x,y,a,0)
-        prn = self._chi(x,y,a,0)
+        prn = self._prn(x,y,a,0)
         return x,y,yerr,x_ref,y_ref,prn
     
     # timestamp all measurements
@@ -323,15 +324,15 @@ def build_window():
         [sg.T('', background_color='lightgray', text_color='black', justification='right',  key='rm5', size=(10,1))],
     ]
     dr_layout = [
-        [sg.T('Coeff Var (%):')],
+        [sg.T('Coeff of Var (%):')],
         [sg.T('', background_color='lightgray', justification='right', key='dr1', size=(10,1))],
         [sg.T('', background_color='lightgray', justification='right', key='dr2', size=(10,1))],
         [sg.T('', background_color='lightgray', justification='right', key='dr3', size=(10,1))],
         [sg.T('', background_color='lightgray', justification='right', key='dr4', size=(10,1))],
         [sg.T('', background_color='lightgray', justification='right', key='dr5', size=(10,1))],
     ]
-    cod_layout = [
-        [sg.T('Coeff Det (%)'),sg.T('', background_color='lightgray', justification='right', key='CoD', size=(10,1))]
+    chi_layout = [
+        [sg.T('Chi Sqaure')],[sg.T('', background_color='lightgray', justification='right', key='Chi', size=(10,1))]
     ]
     ml_layout = [
         [sg.Multiline('', key='-ML-', enable_events=True, size=(96,5))],
@@ -350,7 +351,8 @@ def build_window():
     layout = [
         [sg.Column(sess0_layout), sg.Column(plt_layout)],
         [sg.Frame('Equipment',[[sg.Column(sess1_layout), sg.Column(sess2_layout), sg.Column(sess3_layout)]])],
-        [sg.Frame('Measurements',[[sg.Column(mu_layout),sg.Column(e_layout),sg.Column(r1_layout),sg.Column(r2_layout),sg.Column(r3_layout),sg.Column(rm_layout),sg.Column(dr_layout),sg.Column(cod_layout)]])],
+        [sg.Frame('Measurements',[[sg.Column(mu_layout),sg.Column(e_layout),sg.Column(r1_layout),sg.Column(r2_layout),sg.Column(r3_layout),
+         sg.Column(rm_layout),sg.Column(dr_layout),sg.Column(chi_layout)]])],
         [sg.Frame('Comments', ml_layout)],
         [button_layout],
     ]
@@ -444,13 +446,13 @@ while True:
             window['-CSV_WRITE-'](disabled=False) # enable Export button
             window['-Submit-'](disabled=False) # enable Export button
             window['ADate'](disabled=True) # freeze session ID
-            x,y,yerr,xref,yref,cod = results.fit_data()
+            x,y,yerr,xref,yref,prn = results.fit_data()
             update_fig(x,y,yerr,xref,yref) # plot results
-            window['CoD']('%.3f' % cod)
-            if CoD_threshold[0] <= cod <= CoD_threshold[1]:
-                window['CoD'](background_color='green')
+            window['Chi']('%.3f' % prn)
+            if Chi_threshold[0] <= prn <= Chi_threshold[1]:
+                window['Chi'](background_color='green')
             else:
-                window['CoD'](background_color='red')
+                window['Chi'](background_color='red')
         for i in range(len(results.MUindex)):
             rm_idx = 'rm'+ results.MUindex[i]
             window[rm_idx]('%.3f' % results.Rmean[i]) # format mean to 3dp
