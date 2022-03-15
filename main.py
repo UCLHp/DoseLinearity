@@ -367,7 +367,7 @@ session = DLsession()
 session_keys = [i for i in vars(session).keys() if i not in 'fname']
 new_keys = ['ADate', 'Operator 1', 'Operator 2', 'MachineName', 'GA', 'Energy',
 'Electrometer', 'Voltage', 'ChamberType', 'Chamber', 'Temperature', 'Pressure','Comments']
-results_keys = [i for i in vars(results).keys() if i not in ['analysed', 'fname']]
+results_keys = [i for i in vars(results).keys() if i not in ['analysed', 'fname', 'cov']]
 
 field_check = fc.field_check(Op, G, Roos+Semiflex, El, [str(i) for i in V])
 
@@ -453,16 +453,34 @@ while True:
                 window['Chi'](background_color='green')
             else:
                 window['Chi'](background_color='red')
-        for i in range(len(results.MUindex)):
-            rm_idx = 'rm'+ results.MUindex[i]
-            window[rm_idx]('%.3f' % results.Rmean[i]) # format mean to 3dp
-            dr_idx = 'dr'+results.MUindex[i]
-            cov = results.cov[i]
-            window[dr_idx]('%.3f' % cov) # format diff to 3dp
-            if abs(cov)>CoV_threshold:
-                window[dr_idx](background_color='red')
+        n=0
+        for i in range(1,len(mu_list)+1):
+            if str(i) == results.MUindex[n]:
+                rm_idx = 'rm'+ results.MUindex[n]
+                window[rm_idx]('%.3f' % results.Rmean[n]) # format mean to 3dp
+                dr_idx = 'dr'+results.MUindex[n]
+                cov = results.cov[n]
+                window[dr_idx]('%.3f' % cov) # format diff to 3dp
+                if abs(cov)>CoV_threshold:
+                    window[dr_idx](background_color='red')
+                else:
+                    window[dr_idx](background_color='green')
+                n+=1
             else:
-                window[dr_idx](background_color='green')
+                rm_idx = 'rm'+str(i)
+                dr_idx = 'dr'+str(i)
+                window[rm_idx]('', background_color='lightgray')
+                window[dr_idx]('', background_color='lightgray')
+        # for i in range(len(results.MUindex)):
+        #     rm_idx = 'rm'+ results.MUindex[i]
+        #     window[rm_idx]('%.3f' % results.Rmean[i]) # format mean to 3dp
+        #     dr_idx = 'dr'+results.MUindex[i]
+        #     cov = results.cov[i]
+        #     window[dr_idx]('%.3f' % cov) # format diff to 3dp
+        #     if abs(cov)>CoV_threshold:
+        #         window[dr_idx](background_color='red')
+        #     else:
+        #         window[dr_idx](background_color='green')
 
 
     if event == '-Export-': ### Export results to csv
@@ -491,7 +509,7 @@ while True:
         for i in range(1,6):
             window['dr'+str(i)]('', background_color='lightgray')
             window['rm'+str(i)]('', background_color='lightgray')
-        window['CoD']('', background_color='lightgray')
+        window['Chi']('', background_color='lightgray')
         window['ADate'](disabled=False) # freeze session ID
         window['-AnalyseS-'](disabled=False) # freeze session ID
         update_fig(None,None,None,x_ref,y_ref)
