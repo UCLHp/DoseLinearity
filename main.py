@@ -452,11 +452,7 @@ while True:
             if Chi_threshold[0] <= prn <= Chi_threshold[1]:
                 window['Chi'](background_color='green')
             else:
-                window['Chi'](background_color='red')
-        
-        print("mu_list: "+str(mu_list))
-        print("results.MUindex: "+str(results.MUindex))
-        
+                window['Chi'](background_color='red')        
         n=0
         for i in range(1,len(mu_list)+1):
             if n<len(results.MUindex) and str(i) == results.MUindex[n]:
