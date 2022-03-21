@@ -13,7 +13,7 @@ import field_check as fc
 
 ### Action levels
 CoV_threshold = 0.5
-Chi_threshold = [0,0.05]#[99.9,100.1]
+Chi_threshold = [0,0.2]#[99.9,100.1]
 
 ### Session and Results Classes
 class DLsession:
@@ -453,9 +453,13 @@ while True:
                 window['Chi'](background_color='green')
             else:
                 window['Chi'](background_color='red')
+        
+        print("mu_list: "+str(mu_list))
+        print("results.MUindex: "+str(results.MUindex))
+        
         n=0
         for i in range(1,len(mu_list)+1):
-            if str(i) == results.MUindex[n]:
+            if n<len(results.MUindex) and str(i) == results.MUindex[n]:
                 rm_idx = 'rm'+ results.MUindex[n]
                 window[rm_idx]('%.3f' % results.Rmean[n]) # format mean to 3dp
                 dr_idx = 'dr'+results.MUindex[n]
