@@ -30,6 +30,8 @@ class DLsession:
         self.Cid = None 
         self.T = None
         self.P =None
+        self.LinearityPass = 'NA'
+        self.VarPass = 'NA'
         self.Comment = None
         self.fname = 'session.csv' 
 
@@ -62,6 +64,7 @@ class DLresults():
         self.MUratio = []
         self.R = []
         self.cov = []
+        self.VarPass = []
         self.analysed = False
         self.fname = 'results.csv'
 
@@ -366,7 +369,7 @@ results = DLresults()
 session = DLsession()
 session_keys = [i for i in vars(session).keys() if i not in 'fname']
 new_keys = ['ADate', 'Operator 1', 'Operator 2', 'MachineName', 'GA', 'Energy',
-'Electrometer', 'Voltage', 'ChamberType', 'Chamber', 'Temperature', 'Pressure','Comments']
+'Electrometer', 'Voltage', 'ChamberType', 'Chamber', 'Temperature', 'Pressure', 'LinearityPass', 'RepeatabilityPass', 'Comments']
 results_keys = [i for i in vars(results).keys() if i not in ['analysed', 'fname', 'cov']]
 
 field_check = fc.field_check(Op, G, Roos+Semiflex, El, [str(i) for i in V])
@@ -451,8 +454,11 @@ while True:
             window['Chi']('%.3f' % prn)
             if Chi_threshold[0] <= prn <= Chi_threshold[1]:
                 window['Chi'](background_color='green')
+                session.LinearityPass = 'PASS'
             else:
-                window['Chi'](background_color='red')        
+                window['Chi'](background_color='red')  
+                session.LinearityPass = 'FAIL'      
+        session.VarPass = 'PASS'
         n=0
         for i in range(1,len(mu_list)+1):
             if n<len(results.MUindex) and str(i) == results.MUindex[n]:
@@ -463,8 +469,11 @@ while True:
                 window[dr_idx]('%.3f' % cov) # format diff to 3dp
                 if abs(cov)>CoV_threshold:
                     window[dr_idx](background_color='red')
+                    session.VarPass = 'FAIL'
+                    results.VarPass.append('FAIL')
                 else:
                     window[dr_idx](background_color='green')
+                    results.VarPass.append('PASS')
                 n+=1
             else:
                 rm_idx = 'rm'+str(i)

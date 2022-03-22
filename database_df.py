@@ -5,6 +5,7 @@ Adapted and extended from script by Steven Court
 Interaction with QA database
 """
 
+import string
 import PySimpleGUI as sg
 import pypyodbc
 from pypyodbc import IntegrityError
@@ -12,7 +13,7 @@ import pandas as pd
 
 SESSION_TABLE = "DoseLinearitySession"
 RESULTS_TABLE = "DoseLinearityResults"
-DB_PATH = None
+DB_PATH = "\\\\mpb-dc101\\rtp-share$\\protons\\Work in Progress\\AlexG\\Access\\AssetsDatabase_be.accdb"
 PASSWORD = None
 
 def populate_fields():
@@ -109,8 +110,8 @@ def write_session_data(conn, df_session):
     cursor = conn.cursor()   
     sql = '''
             INSERT INTO "%s" (ADate, [Operator 1], [Operator 2], MachineName, GA, Energy, \
-                Electrometer, Voltage, ChamberType, Chamber, Temperature, Pressure, Comments)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                Electrometer, Voltage, ChamberType, Chamber, Temperature, Pressure, LinearityPass, RepeatabilityPass, Comments)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
           '''%(SESSION_TABLE)
     data = df_session.values.tolist()[0]
     
@@ -132,16 +133,17 @@ def write_results_data(conn,df_results):
     cursor = conn.cursor()   
     sql = '''
             INSERT INTO "%s" (RTimestamp, ADate, MUindex, MU, Rmean, \
-                Rdifflinearity, Rstd, Rratio, MUratio, R) 
-            VALUES (?,?,?,?,?,?,?,?,?,?)  
+                Rdifflinearity, Rstd, Rratio, MUratio, R, VarPass) 
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)  
          '''%(RESULTS_TABLE)
     print("Writing results to database...")
     write_flag = True
     for i,row in df_results.iterrows():
         try:
             data = row.values.tolist()
-            data[0] = str(data[0])
-            data[-1] = str(data[-1])
+            for n,j in enumerate(data):
+                if not isinstance(j,(float, int, str)):
+                    data[n] = str(j)
             cursor.execute(sql, data)
         except IntegrityError:
             sg.popup("Results Write Error","WARNING: Write to database failed.")
