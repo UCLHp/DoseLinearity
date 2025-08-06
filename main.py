@@ -139,6 +139,7 @@ class DLresults():
         yerr = np.empty((2, y.shape[0]))
         yerr[0,:] = y-Rmin
         yerr[1,:] = Rmax-y
+        yerr = abs(yerr)  # getting rid of all negatives for the error bars due to rounding errors
         a, _ = self._fit()
         x_ref = np.array(range(int(x[-1]+1)))
         y_ref = a*np.array(x_ref)
